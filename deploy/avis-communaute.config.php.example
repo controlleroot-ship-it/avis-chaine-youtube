@@ -1,0 +1,12 @@
+<?php
+// Copier dans public_html/api, sous le nom avis-communaute.config.php.
+// Le routage et .htaccess bloquent l'accès direct à ce fichier PHP.
+// Si le compte permet de sortir de public_html, préférer le dossier parent.
+// Ne jamais ajouter le fichier rempli dans Git.
+return [
+    'DB_HOST' => 'localhost',
+    'DB_PORT' => '3306',
+    'DB_NAME' => 'u123456789_avis',
+    'DB_USER' => 'u123456789_avis',
+    'DB_PASSWORD' => 'REMPLACER',
+];
