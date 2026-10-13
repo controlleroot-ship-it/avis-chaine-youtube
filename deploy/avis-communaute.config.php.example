@@ -1,0 +1,10 @@
+<?php
+// Copier à côté de public_html, sous le nom avis-communaute.config.php.
+// Ne jamais ajouter le fichier rempli dans Git.
+return [
+    'DB_HOST' => 'localhost',
+    'DB_PORT' => '3306',
+    'DB_NAME' => 'u123456789_avis',
+    'DB_USER' => 'u123456789_avis',
+    'DB_PASSWORD' => 'REMPLACER',
+];

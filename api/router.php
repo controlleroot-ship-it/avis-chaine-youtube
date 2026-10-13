@@ -13,15 +13,31 @@ function respond(array $payload, int $status = 200): never
 
 function mysqlConnection(): ?PDO
 {
-    $host = getenv('DB_HOST');
-    $database = getenv('DB_NAME');
-    $username = getenv('DB_USER');
-    $password = getenv('DB_PASSWORD');
-    if (!$host || !$database || !$username || $password === false) {
+    $configPath = getenv('AVIS_DB_CONFIG') ?: dirname(__DIR__, 2) . '/avis-communaute.config.php';
+    $config = is_file($configPath) ? require $configPath : [];
+    if (!is_array($config)) {
+        throw new RuntimeException('Configuration MySQL invalide.');
+    }
+    $settings = [];
+    foreach (['DB_HOST', 'DB_PORT', 'DB_NAME', 'DB_USER', 'DB_PASSWORD'] as $key) {
+        $environment = getenv($key);
+        $settings[$key] = $environment === false ? ($config[$key] ?? null) : $environment;
+        if ($settings[$key] !== null && !is_string($settings[$key])) {
+            throw new RuntimeException('Configuration MySQL invalide.');
+        }
+    }
+    $host = $settings['DB_HOST'];
+    $database = $settings['DB_NAME'];
+    $username = $settings['DB_USER'];
+    $password = $settings['DB_PASSWORD'];
+    if (!$host || !$database || !$username || $password === null) {
+        if (defined('AVIS_PRODUCTION') && AVIS_PRODUCTION) {
+            throw new RuntimeException('La production exige une base MySQL configurée.');
+        }
         return null;
     }
 
-    $port = getenv('DB_PORT') ?: '3306';
+    $port = $settings['DB_PORT'] ?: '3306';
     $pdo = new PDO(
         "mysql:host={$host};port={$port};dbname={$database};charset=utf8mb4",
         $username,
@@ -80,15 +96,18 @@ function addLocalReview(array $review): array
 $path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
-if ($path === '/health' && $method === 'GET') {
-    respond(['status' => 'ok']);
-}
-
-if ($path !== '/api/reviews') {
-    respond(['error' => 'Route introuvable.'], 404);
-}
-
 try {
+    if ($path === '/health' && $method === 'GET') {
+        if (defined('AVIS_PRODUCTION') && AVIS_PRODUCTION) {
+            mysqlConnection()->query('SELECT 1');
+        }
+        respond(['status' => 'ok']);
+    }
+
+    if ($path !== '/api/reviews') {
+        respond(['error' => 'Route introuvable.'], 404);
+    }
+
     $pdo = mysqlConnection();
     if ($method === 'GET') {
         if ($pdo) {

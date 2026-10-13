@@ -1,3 +1,5 @@
 node_modules/
 dist/
+hostinger-site/
 .env
+avis-communaute.config.php

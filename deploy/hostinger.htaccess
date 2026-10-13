@@ -1,0 +1,20 @@
+Options -Indexes
+DirectoryIndex index.html
+
+<FilesMatch "(^\.|\.(env|sql|ini|log|bak|example)$)">
+    Require all denied
+</FilesMatch>
+
+RewriteEngine On
+RewriteRule ^api(?:/.*)?$ api/index.php [END]
+RewriteRule ^health$ api/index.php [END]
+
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ index.html [END]
+
+<IfModule mod_headers.c>
+    <FilesMatch "^(index\.html|release\.json)$">
+        Header set Cache-Control "no-cache"
+    </FilesMatch>
+</IfModule>
