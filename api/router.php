@@ -13,7 +13,11 @@ function respond(array $payload, int $status = 200): never
 
 function mysqlConnection(): ?PDO
 {
-    $configPath = getenv('AVIS_DB_CONFIG') ?: dirname(__DIR__, 2) . '/avis-communaute.config.php';
+    $configPath = getenv('AVIS_DB_CONFIG');
+    if (!$configPath) {
+        $privatePath = dirname(__DIR__, 2) . '/avis-communaute.config.php';
+        $configPath = is_file($privatePath) ? $privatePath : __DIR__ . '/avis-communaute.config.php';
+    }
     $config = is_file($configPath) ? require $configPath : [];
     if (!is_array($config)) {
         throw new RuntimeException('Configuration MySQL invalide.');

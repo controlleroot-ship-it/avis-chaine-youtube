@@ -1,43 +1,83 @@
 # Avis de la communauté
 
-Application React/Vite avec une API PHP. L’aperçu utilise le stockage local ; la production utilise MySQL.
+Application React/Vite en français et API PHP. L’aperçu local enregistre les avis dans un fichier temporaire. Le site publié les enregistre dans une base MySQL Hostinger.
 
-## Production automatique sur Hostinger
+## Publier manuellement après la fusion d’une pull request
 
-La fusion d’une pull request dans `main` lance **Production Hostinger**. Le workflow teste et compile le dernier `main`, puis transfère le site par SSH/rsync. Il vérifie ensuite la page, MySQL via `/health`, `/api/reviews` et la révision publiée. Une pull request fermée sans fusion ne publie rien. Une simple approbation de review ne publie pas encore le code.
+Cette procédure ne publie rien sur Hostinger automatiquement. Après chaque fusion, GitHub prépare un ZIP à envoyer manuellement sur Hostinger.
 
-Ce mode utilise un site PHP/HTML Hostinger avec Apache/LiteSpeed et un accès SSH. Les offres Web Premium ou supérieures et Cloud prennent en charge SSH/rsync. Un VPS doit avoir un serveur web PHP compatible avec `.htaccess`. Un site Hostinger AI Builder ne convient pas à ce paquet.
+### 1. Fusionner et télécharger le paquet
 
-### Configuration initiale, une seule fois
+1. Ouvrir la pull request vers `main`. Lire ses changements ; si GitHub la présente en brouillon, cliquer sur **Ready for review**. Attendre les vérifications vertes et l’approuver si GitHub le demande, puis cliquer sur **Merge pull request**.
+2. Ouvrir l’onglet **Actions** du dépôt. Dans le workflow **Vérifications**, ouvrir l’exécution du commit de fusion dans `main` et attendre son résultat vert.
+3. En bas de cette exécution, cliquer sur **site-hostinger** et télécharger le fichier ZIP. Ce lien reste disponible pendant 14 jours.
+4. Décompresser ce ZIP sur votre ordinateur. Vous devez voir `index.html`, `.htaccess`, `release.json` et les dossiers `assets/` et `api/`. Le ZIP contient uniquement le site compilé ; il ne contient aucun mot de passe.
 
-1. Dans hPanel, activer SSH pour le site, utiliser PHP 8.3 avec `pdo_mysql`, et créer une base MySQL et son utilisateur.
-2. Autoriser une clé SSH dédiée au déploiement. Garder sa clé privée dans GitHub, jamais dans le dépôt.
-3. Copier `deploy/avis-communaute.config.php.example` dans le dossier du domaine, **à côté de `public_html`**, sous le nom `avis-communaute.config.php`. Renseigner les identifiants MySQL. La table des avis est créée automatiquement. Aucun secret MySQL n’est transféré par le workflow.
-4. Dans GitHub → Settings → Secrets and variables → Actions, créer les secrets et variables ci-dessous.
-5. Fusionner la pull request dans `main`. Le workflow peut aussi être relancé depuis Actions → Production Hostinger → Run workflow, sur `main`, après correction d’un accès ou de la configuration.
+Il ne faut envoyer ni le dépôt GitHub entier, ni `src/`, ni `node_modules/`, ni `.env`. Le PHP à envoyer est déjà dans le dossier `api/` du ZIP ; vous n’avez pas à le déplacer depuis d’autres dossiers du dépôt.
 
-| Secret GitHub | Valeur |
-| --- | --- |
-| `HOSTINGER_SSH_HOST` | Adresse SSH du serveur indiquée dans hPanel |
-| `HOSTINGER_SSH_USER` | Utilisateur SSH, par exemple `u123456789` |
-| `HOSTINGER_SSH_KEY` | Clé privée SSH dédiée, complète, sans phrase secrète |
-| `HOSTINGER_SSH_KNOWN_HOSTS` | Ligne `known_hosts` du serveur, avec le port SSH |
+### 2. Créer la base MySQL, une seule fois
 
-| Variable GitHub | Valeur |
-| --- | --- |
-| `HOSTINGER_PUBLIC_PATH` | Chemin absolu existant, par exemple `/home/u123456789/domains/exemple.fr/public_html` |
-| `HOSTINGER_SITE_URL` | URL HTTPS canonique du site, par exemple `https://exemple.fr`, à la racine du domaine |
-| `HOSTINGER_SSH_PORT` | Port de hPanel ; `65002` par défaut |
+Dans Hostinger, choisir **Websites → Dashboard → Databases → Management**, sélectionner le site `beluis.com`, puis créer une base et son utilisateur. Garder les cinq valeurs affichées : hôte MySQL, nom de la base, utilisateur, mot de passe et port `3306`. Hostinger ajoute un préfixe à la base et à l’utilisateur ; garder leur nom complet. [Guide Hostinger pour créer la base et son utilisateur](https://www.hostinger.com/support/1583542-how-to-create-a-new-mysql-database-in-hostinger/).
 
-Obtenir la ligne `known_hosts` avec `ssh-keyscan -p 65002 ADRESSE_SSH`, puis vérifier son empreinte par un canal fiable auprès de Hostinger avant de la stocker. Le déploiement impose la vérification de cette clé ; un changement de clé serveur bloque le transfert.
+La base existe dans la section **Databases** de Hostinger, séparément des fichiers du site. Elle ne va ni dans `public_html`, ni dans le dépôt GitHub. Vous pouvez ouvrir **phpMyAdmin** dans **Databases → Management** pour consulter les avis. Il n’y a rien à importer : l’API crée la table `reviews` dans la base lors du premier appel.
 
-L’environnement GitHub `production` ne doit pas exiger une seconde approbation si la publication doit suivre immédiatement la fusion. Pour réserver la validation aux pull requests, protéger `main`, exiger une review et le contrôle **Tests et compilation**, et interdire les pushes directs.
+### 3. Préparer le fichier privé de connexion à la base
 
-Le transfert remplace uniquement les fichiers du paquet. Il garde la configuration privée, les données MySQL et les anciens assets. Les fichiers frontend sont compilés et les routes PHP sont servies par `.htaccess`. Les anciens assets restent disponibles pour les pages déjà ouvertes. Une base absente ou inaccessible fait échouer le contrôle de production ; l’API ne stocke aucun avis dans un fichier temporaire en production.
+Sur votre ordinateur, créer un fichier appelé `avis-communaute.config.php` avec ce contenu :
 
-Si une vérification échoue après le transfert, le workflow est en échec et la version transférée peut déjà être en ligne. Corriger la configuration ou fusionner un correctif, puis relancer le workflow. Il ne restaure pas automatiquement la version précédente.
+```php
+<?php
+return [
+    'DB_HOST' => 'HOTE_MYSQL_AFFICHE_PAR_HOSTINGER',
+    'DB_PORT' => '3306',
+    'DB_NAME' => 'NOM_COMPLET_DE_LA_BASE',
+    'DB_USER' => 'UTILISATEUR_MYSQL_COMPLET',
+    'DB_PASSWORD' => 'MOT_DE_PASSE_MYSQL',
+];
+```
 
-### Commandes locales
+Remplacer les quatre valeurs par celles de votre base ; si Hostinger indique `localhost` comme hôte, mettre `localhost`. Ce mot de passe est celui de **MySQL**, pas celui du FTP. Ne pas remplir le modèle avec vos secrets dans GitHub et ne jamais téléverser ce fichier dans GitHub.
+
+### 4. Sauvegarder le site déjà en ligne
+
+**Le domaine `beluis.com` affiche actuellement votre portfolio.** Le chemin indiqué par votre compte FTP est `/home/u510042410/domains/beluis.com/public_html`. Envoyer l’application dans ce dossier remplacera la page d’accueil et les règles `.htaccess` actuelles. Avant l’envoi, télécharger une copie de tout `public_html` avec FileZilla. Si vous voulez garder le portfolio à la racine, créer un sous-domaine ou un site distinct dans Hostinger et utiliser son propre `public_html`.
+
+Les avis se trouvent dans MySQL et ne sont pas stockés dans `public_html`. L’archive ne contient pas votre configuration MySQL, donc elle ne la remplace pas.
+
+### 5. Se connecter à Hostinger et envoyer les fichiers
+
+1. Dans Hostinger, ouvrir **Websites → Dashboard → Files → FTP Accounts** et recopier **l’adresse IP FTP**, le nom d’utilisateur, le répertoire autorisé et le port affichés pour votre compte. Hostinger donne l’IP FTP et le port 21 sur cette page. L’adresse `ftp.beluis.com` fournie ne résout actuellement pas : utiliser l’IP indiquée par hPanel. Ne pas remplacer cette IP par une adresse trouvée au hasard. [Guide officiel Hostinger pour les détails FTP et l’envoi de fichiers](https://www.hostinger.com/support/1869164-how-to-upload-backups-with-ftp-in-hostinger/).
+2. Dans FileZilla, entrer l’IP de l’hôte, le nom d’utilisateur et le port 21. Sélectionner **FTP**. L’aide Hostinger indique **Only use plain FTP** pour ce type d’accès. Le FTP simple n’est pas chiffré : changer d’abord le mot de passe déjà partagé dans la conversation, puis saisir le nouveau directement dans FileZilla. Ne pas le coller ici ni dans GitHub.
+3. Pour les petits fichiers, vous pouvez aussi utiliser **Hostinger → File Manager** dans votre navigateur à la place de FileZilla. Hostinger permet d’y téléverser un ZIP et de le décompresser.
+4. Du côté distant, vérifier que le chemin finit bien par `domains/beluis.com/public_html`, sauf si vous avez créé un sous-domaine.
+5. Du côté de votre ordinateur, ouvrir le dossier décompressé et sélectionner son contenu. Envoyer `index.html`, `release.json`, `.htaccess`, et les dossiers `assets/` et `api/` dans `public_html`. Envoyer le dossier `assets/` en entier pour conserver sa structure. Si FileZilla masque `.htaccess`, choisir **Server → Force showing hidden files**.
+6. Si FileZilla demande quoi faire des fichiers existants, remplacer `index.html`, `.htaccess`, `assets/` et les deux fichiers PHP fournis. Ne pas supprimer les autres fichiers. Garder dans `api/` le fichier privé `avis-communaute.config.php` ; le ZIP ne le contient pas.
+7. Envoyer aussi `avis-communaute.config.php` depuis votre ordinateur dans `public_html/api/`. Son chemin final doit être `public_html/api/avis-communaute.config.php`. L’API le lit automatiquement et `.htaccess` bloque son accès direct depuis Internet.
+
+### 6. Vérifier le site
+
+Ouvrir votre site en HTTPS. Pour vérifier séparément :
+
+- `/health` doit afficher `{"status":"ok"}`. Ce contrôle vérifie aussi la connexion MySQL.
+- `/api/reviews` doit afficher `[]` si personne n’a encore publié d’avis.
+- Depuis la page, publier un avis test, recharger la page et vérifier que l’avis apparaît toujours.
+- Dans phpMyAdmin, ouvrir la base créée puis `reviews` pour retrouver cet avis.
+
+Si `/health` répond par une erreur, vérifier d’abord le fichier privé dans `public_html/api/`, puis les cinq valeurs MySQL. Si la page renvoie une erreur 404 à la place d’un fichier JSON, vérifier la présence du fichier `.htaccess` dans `public_html`.
+
+### Pour les publications suivantes
+
+Après chaque nouvelle fusion, télécharger le nouvel artefact **site-hostinger**, le décompresser, sauvegarder les fichiers qui sont en ligne puis envoyer le nouveau contenu. Ne pas recréer la base, ne pas importer de fichier SQL et ne pas écraser `api/avis-communaute.config.php`. La base conserve les avis.
+
+### En cas de retour à l’ancien site
+
+Dans FileZilla, remettre en place les fichiers sauvegardés avant la publication. Ne pas supprimer la base MySQL : elle contient les avis et n’a pas besoin d’être modifiée pour restaurer l’ancien site.
+
+Pour créer ou restaurer une sauvegarde de base, ouvrir **Websites → Dashboard → Databases → Management → Enter phpMyAdmin**, puis utiliser **Export**. [Guide Hostinger pour phpMyAdmin](https://www.hostinger.com/support/4529011-how-to-export-a-database-with-phpmyadmin-in-hostinger/).
+
+## Commandes pour le paquet local
+
+Si vous utilisez un ordinateur avec Node.js installé, la même archive peut être créée depuis la branche fusionnée :
 
 ```sh
 npm ci
@@ -45,6 +85,4 @@ npm test
 npm run build:hostinger
 ```
 
-Le paquet se trouve dans `hostinger-site/`. Il contient le frontend compilé, l’API PHP, `.htaccess` et `release.json`. Il ne contient ni `.env`, ni identifiants MySQL, ni sources React, ni `node_modules`.
-
-Documentation : [accès SSH et rsync Hostinger](https://www.hostinger.com/support/which-file-transfer-and-server-access-options-are-supported-at-hostinger/), [déclenchement après fusion GitHub](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#running-your-pull_request-workflow-when-a-pull-request-merges).
+Le site compilé se trouve alors dans `hostinger-site/`.

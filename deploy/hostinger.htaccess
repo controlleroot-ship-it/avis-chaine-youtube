@@ -1,7 +1,7 @@
 Options -Indexes
 DirectoryIndex index.html
 
-<FilesMatch "(^\.|\.(env|sql|ini|log|bak|example)$)">
+<FilesMatch "(^avis-communaute\.config\.php$|^\.|\.(env|sql|ini|log|bak|example)$)">
     Require all denied
 </FilesMatch>
 

@@ -24,6 +24,12 @@ jobs:
       - run: php -l api/router.php
       - run: php -l api/index.php
       - run: php -l deploy/avis-communaute.config.php.example
-      - run: bash -n scripts/deploy-hostinger.sh
       - run: npm test
       - run: npm run build:hostinger
+      - name: Préparer l’archive pour le transfert manuel
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: site-hostinger
+          path: hostinger-site/
+          if-no-files-found: error
+          retention-days: 14
