@@ -4,8 +4,8 @@ Application de collecte et de lecture des avis de la communauté, avec React/Vit
 
 ## Développement local
 
-1. Installer Node.js, PHP avec PDO MySQL et un serveur MySQL accessible.
-2. Copier `.env.example` vers `.env` et renseigner les paramètres MySQL.
+1. Installer Node.js, PHP avec PDO MySQL et MariaDB/MySQL.
+2. Créer la base `avis_chaine` et renseigner les paramètres de `.env.example` dans `.env`.
 3. Installer les dépendances avec `npm ci`.
 4. Créer la table des avis avec `php api/init-db.php`.
 5. Démarrer l’API avec `php -S 0.0.0.0:8000 api/router.php`.
@@ -21,3 +21,4 @@ Vite transmet `/api/*` à l’API PHP. `PHP_API_URL` peut remplacer sa cible loc
 - `GET /health` vérifie la connexion MySQL.
 
 La table `reviews` est créée automatiquement au démarrage de l’API si elle n’existe pas.
+Le sandbox Kosuke utilise MariaDB locale pour le développement. Pour héberger le site sur Hostinger, créez une base MySQL dans hPanel, autorisez l’accès distant si nécessaire, puis remplacez les variables `DB_*` par les valeurs fournies par Hostinger.
