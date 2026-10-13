@@ -20,6 +20,8 @@ Vite transmet `/api/*` à l’API PHP. `PHP_API_URL` peut remplacer sa cible loc
 - `POST /api/reviews` ajoute un avis JSON avec `name`, `rating` (1 à 5) et `message`.
 - `GET /health` vérifie la connexion MySQL.
 
-Dans le sandbox Kosuke, systemd gère les services : `frontend` lance `npm run dev` et `api` lance `php -S 0.0.0.0:8000 api/router.php`. L’API utilise MySQL lorsque les variables `DB_*` sont configurées, sinon elle utilise un fichier temporaire. La racine de l’API répond à son contrôle de santé, et `/health` vérifie la connexion MySQL.
+Dans le sandbox Kosuke, systemd gère les services : `frontend` lance `npm run dev` et `api` dépend du service `database` (MariaDB locale). La configuration des services injecte les variables `DB_*`, initialise la table avec `php api/init-db.php`, puis lance `npm run dev:api`. Le contrôle de santé de l’API utilise `/health` pour vérifier la connexion MySQL avant de démarrer le frontend. Vite compile les fichiers React et transmet les requêtes des avis à l’API PHP.
+
+En développement local sans variables `DB_*`, l’API utilise un fichier temporaire. Utilisez MySQL pour conserver les avis hors du répertoire temporaire.
 
 Pour héberger le site sur Hostinger, créez une base MySQL dans hPanel, autorisez l’accès distant si nécessaire, puis remplacez les variables `DB_*` par les valeurs fournies par Hostinger.
